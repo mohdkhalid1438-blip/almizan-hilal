@@ -1,0 +1,44 @@
+name: Notify app (FCM)
+
+# hilal.json بدلتے ہی ایپ کو فوری پیغام بھیجتا ہے
+on:
+  push:
+    paths:
+      - 'hilal.json'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Send FCM message to topic "hilal"
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+        run: |
+          pip install --quiet google-auth requests
+          python - <<'PY'
+          import json, os, requests
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import Request
+
+          info = json.loads(os.environ["FIREBASE_SA"])
+          creds = service_account.Credentials.from_service_account_info(
+              info, scopes=["https://www.googleapis.com/auth/firebase.messaging"])
+          creds.refresh(Request())
+
+          url = "https://fcm.googleapis.com/v1/projects/%s/messages:send" % info["project_id"]
+          body = {"message": {
+              "topic": "hilal",
+              "data": {"u": "1"},
+              "android": {"priority": "HIGH", "ttl": "3600s"},
+          }}
+          r = requests.post(url, json=body, timeout=30,
+                            headers={"Authorization": "Bearer " + creds.token})
+          print(r.status_code, r.text)
+          r.raise_for_status()
+          PY
+          
