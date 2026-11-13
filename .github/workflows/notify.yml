@@ -31,13 +31,6 @@ jobs:
 
       - name: Wait until Cloudflare Pages serves the new file
         run: |
-          echo "=== DEBUG: server response ==="
-          curl -sS -i "https://almizan-hilal.pages.dev/hilal.json?t=1" | head -30
-          echo "=== DEBUG: local hash ==="
-          sha256sum hilal.json
-          echo "=== DEBUG: local 1448-6 ==="
-          grep '1448-6' hilal.json
-          echo "=== DEBUG end ==="
           URL="https://almizan-hilal.pages.dev/hilal.json"
           want=$(sha256sum hilal.json | cut -d' ' -f1)
           for i in $(seq 1 60); do
