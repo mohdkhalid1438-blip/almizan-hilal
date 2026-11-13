@@ -29,9 +29,9 @@ jobs:
           print("hilal.json OK")
           PY
 
-      - name: Wait until Cloudflare serves the new file
+      - name: Wait until Cloudflare Pages serves the new file
         run: |
-          URL="https://almizan-hilal.mohdkhalid1438.workers.dev/hilal.json"
+          URL="https://almizan-hilal.pages.dev/hilal.json"
           want=$(sha256sum hilal.json | cut -d' ' -f1)
           for i in $(seq 1 60); do
             got=$(curl -fsS -H 'Cache-Control: no-cache' "$URL?t=$(date +%s)" | sha256sum | cut -d' ' -f1 || true)
@@ -67,3 +67,4 @@ jobs:
           print(r.status_code, r.text)
           r.raise_for_status()
           PY
+          
