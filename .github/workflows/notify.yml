@@ -1,6 +1,6 @@
 name: Notify app (FCM)
 
-# hilal.json بدلتے ہی ایپ کو فوری پیغام بھیجتا ہے
+# hilal.json بدلتے ہی، نئی فائل لائیو ہونے کے بعد، ایپ کو پیغام بھیجتا ہے
 on:
   push:
     paths:
@@ -10,10 +10,36 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+
+      - name: Validate hilal.json
+        run: |
+          python - <<'PY'
+          import json, sys
+          d = json.load(open("hilal.json", encoding="utf-8"))
+          x = d.get("in")
+          if not isinstance(x, dict) or not x:
+              sys.exit("hilal.json: 'in' missing or empty - not sending")
+          print("hilal.json OK")
+          PY
+
+      - name: Wait until Cloudflare serves the new file
+        run: |
+          URL="https://almizan-hilal.mohdkhalid1438.workers.dev/hilal.json"
+          want=$(sha256sum hilal.json | cut -d' ' -f1)
+          for i in $(seq 1 60); do
+            got=$(curl -fsS -H 'Cache-Control: no-cache' "$URL?t=$(date +%s)" | sha256sum | cut -d' ' -f1 || true)
+            if [ "$got" = "$want" ]; then echo "live after try $i"; exit 0; fi
+            echo "try $i: not live yet"; sleep 10
+          done
+          echo "new file not live after 10 min - not sending"
+          exit 1
 
       - name: Send FCM message to topic "hilal"
         env:
@@ -41,4 +67,3 @@ jobs:
           print(r.status_code, r.text)
           r.raise_for_status()
           PY
-          
